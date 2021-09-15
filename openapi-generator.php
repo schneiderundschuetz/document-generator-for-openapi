@@ -2,7 +2,7 @@
 /**
  * @wordpress-plugin
  * Plugin Name: OpenAPI Generator 
- * Description: OpenAPI (fka. Swagger) Schema Generator for WordPress REST API 
+ * Description: OpenAPI (fka. Swagger) Document Generator for WordPress REST API 
  * Version:     1.0.0
  * Author:      Schneider & Schuetz GmbH
  * Author URI:  https://www.schneiderundschuetz.com/

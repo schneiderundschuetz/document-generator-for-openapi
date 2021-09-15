@@ -4,12 +4,13 @@ namespace OpenAPIGenerator;
 
 abstract class GeneratorBase {
     
-    public $wpSchema;
+    public $routes;
 
-    public function __construct($wpSchema) {
-        $this->wpSchema = $wpSchema;
+    public function __construct($namespace, $routes) {
+        $this->namespace = $namespace;
+        $this->routes = $routes;
     }
     
-    public abstract function generateSchema();
+    public abstract function generateDocument();
 
 }
