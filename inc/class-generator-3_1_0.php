@@ -11,17 +11,22 @@ class Generator3_1_0 extends GeneratorBase {
     }
 
     public function generateRoot () {
-        return [
+        $result = [
             'openapi' => '3.1.0',
             'info' => $this->generateInfo(),
             'jsonSchemaDialect' => 'http://json-schema.org/draft-04/schema#',
             'servers' => $this->generateServers(),
             'paths' => $this->generatePaths(),
-            'security' => $this->generateSecurity(),
-            'components' => [
-                'schemas' => $this->schemaObjects
-            ]
+            'security' => $this->generateSecurity()
         ];
+
+        if ( !empty( $this->schemaObjects )) {
+            $result['components'] = [
+                'schemas' => $this->schemaObjects
+            ];
+        }
+
+        return $result;
     }
 
     public function generateInfo() {
@@ -53,29 +58,36 @@ class Generator3_1_0 extends GeneratorBase {
             //remove namespace portion from url
             $url = preg_replace( '#' . $this->namespace . '/?#' , '', $url );
 
-            //create OpenAPI style substitutions by replacing regex named capture grouping used in WordPress
-            //url/<?P<paramname>[regex]+)/further/url
-            //to
-            //url/{paramname}/further/url
-            $substitutions = [];
-            $found = preg_match_all('/\(\?P\<(.*?)\>(.*?)\)/', $url, $matches, PREG_SET_ORDER);
-            if ($found && $found > 0) {
-                //for each found substituion, store the given regex
-                foreach ($matches as $foundSubstitution) {
-                    $substitutions[$foundSubstitution[1]] = $foundSubstitution[2]; 
-                }
+            $substitutions = $this->getSubstitutions( $url );
 
-                //replace all regex substituions with OpenAPI substitutions
-                $url = preg_replace( '/\(\?P\<(.*?)\>.*?\)/', '{$1}', $url );
-            }          
+            //replace all regex substituions with OpenAPI substitutions
+            $url = preg_replace( '/\(\?P\<(.*?)\>.*?\)/', '{$1}', $url );  
 
-            $result[ $url ] = $this->generatePathItem( $spec );
+            $result[ $url ] = $this->generatePathItem( $spec, $substitutions );
         }
 
         return $result;
     }
 
-    public function generatePathItem( $spec ) {
+    public function getSubstitutions( $url ) {
+        //create OpenAPI style substitutions by replacing regex named capture grouping used in WordPress
+        //url/<?P<paramname>[regex]+)/further/url
+        //to
+        //url/{paramname}/further/url
+
+        $substitutions = [];
+        $found = preg_match_all('/\(\?P\<(.*?)\>(.*?)\)/', $url, $matches, PREG_SET_ORDER);
+        if ($found && $found > 0) {
+            //for each found substituion, store the given regex
+            foreach ($matches as $foundSubstitution) {
+                $substitutions[$foundSubstitution[1]] = $foundSubstitution[2]; 
+            }
+        }
+
+        return $substitutions;
+    }
+
+    public function generatePathItem( $spec, $substitutions ) {
         
         $result = [];
 
@@ -88,6 +100,7 @@ class Generator3_1_0 extends GeneratorBase {
             foreach ( $endpoint['args'] as $argumentName => $argument ) {
                 $parameters[] = [
                     'name' => $argumentName,
+                    'in' => \array_key_exists( $argumentName, $substitutions ) ? 'path' : 'query',
                     'description' => isset( $argument['description'] ) ? $argument['description'] : '',
                     'required' => isset ( $argument['required'] ) ? $argument['required'] : 'false',
                     'schema' => $this->generateArgumentSchema( $argument )
@@ -163,7 +176,7 @@ class Generator3_1_0 extends GeneratorBase {
 
         foreach( $node as $key => $val ) {
             if ( is_array( $val ) ) {
-                $this->fixupRequiredFields( $prop );
+                $this->fixupRequiredFields( $node[$key] );
             }
         }
     }
@@ -180,13 +193,15 @@ class Generator3_1_0 extends GeneratorBase {
         }
 
         //always add properties if it exists, even if 'type' might not be 'object'
-        if ( isset( $arguments['properties'] ) ) {
+        if ( isset( $argument['properties'] ) ) {
             $result['properties'] = $argument['properties'];
         }
 
-        if ( isset( $arguments['type'] ) ) {
+        if ( isset( $argument['type'] ) ) {
             $result['type'] = $argument['type'];
         }
+
+        $this->fixupRequiredFields( $result );
 
         return $result;
     }
