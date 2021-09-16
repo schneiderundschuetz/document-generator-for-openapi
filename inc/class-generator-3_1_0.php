@@ -4,7 +4,7 @@ namespace OpenAPIGenerator;
 
 class Generator3_1_0 extends GeneratorBase {
 
-    protected $schemaObjects = [];
+    protected $components = [];
 
     public function generateDocument() {
         return apply_filters( 'openapi_generator_v3_1', $this->generateRoot(), $this);
@@ -20,10 +20,8 @@ class Generator3_1_0 extends GeneratorBase {
             'security' => $this->generateSecurity()
         ];
 
-        if ( !empty( $this->schemaObjects )) {
-            $result['components'] = [
-                'schemas' => $this->schemaObjects
-            ];
+        if ( !empty( $this->components )) {
+            $result['components'] = $this->components;
         }
 
         return $result;
@@ -98,13 +96,7 @@ class Generator3_1_0 extends GeneratorBase {
             //this means, yes, currently those parameters are duplicated in the OpenAPI document
             //because we don't use refs yet. 
             foreach ( $endpoint['args'] as $argumentName => $argument ) {
-                $parameters[] = [
-                    'name' => $argumentName,
-                    'in' => \array_key_exists( $argumentName, $substitutions ) ? 'path' : 'query',
-                    'description' => isset( $argument['description'] ) ? $argument['description'] : '',
-                    'required' => isset ( $argument['required'] ) ? $argument['required'] : 'false',
-                    'schema' => $this->generateArgumentSchema( $argument )
-                ];
+                $parameters[] = $this->generateParameterObject( $argumentName, $argumentName, $substitutions );
             }
 
             foreach ( $endpoint['methods'] as $methodName ) {
@@ -132,6 +124,39 @@ class Generator3_1_0 extends GeneratorBase {
         return $result;
     }
 
+    public function generateParameterObject( $argumentName, $argument, $substitutions ) {
+        $result = [
+            'name' => $argumentName,
+            'in' => \array_key_exists( $argumentName, $substitutions ) ? 'path' : 'query',
+            'description' => isset( $argument['description'] ) ? $argument['description'] : '',
+            'required' => isset ( $argument['required'] ) ? $argument['required'] : 'false',
+            'schema' => $this->generateArgumentSchema( $argument )
+        ];
+
+        if ( !isset( $this->components['parameters'] ) ) {
+            $this->components['parameters'] = [];
+        }
+
+        //do we already have an equal parameter?
+
+        $generatedParameterKey = null;
+        foreach ( $this->components['parameters'] as $key => $parameter ) {
+            if ( $parameter === $result ) {
+                $generatedParameterKey = $key;
+                break;
+            }
+        }
+        
+        if ( !$generatedParameterKey ) {
+            $generatedParameterKey = wp_generate_uuid4();
+            $this->components['parameters'][$generatedParameterKey] = $result;
+        }
+
+        return [
+            '$ref' => '#/components/parameters/' . $generatedParameterKey
+        ];
+    }
+
     public function generateResponseSchema( $schema ) {
                     
         $schemaName = $schema['title'];
@@ -139,7 +164,10 @@ class Generator3_1_0 extends GeneratorBase {
         $this->fixupRequiredFields( $schema );
 
         //add schema to the current schema pool to add it to the components part of the document later on.
-        $this->schemaObjects[$schemaName] = $schema;
+        if ( !isset( $this->components['schemas'] ) ) {
+            $this->components['schemas'] = [];
+        }
+        $this->components['schemas'][$schemaName] = $schema;
 
         return [
             'application/json' => [
@@ -149,6 +177,31 @@ class Generator3_1_0 extends GeneratorBase {
             ]
         ];
 
+    }
+
+    public function generateArgumentSchema( $argument ) {
+
+        $result = [
+            'type' => 'string'
+        ];
+
+        //always add items if it exists, even if 'type' might not be 'array'
+        if ( isset( $argument['items'] ) ) {
+            $result['items'] = $argument['items'];
+        }
+
+        //always add properties if it exists, even if 'type' might not be 'object'
+        if ( isset( $argument['properties'] ) ) {
+            $result['properties'] = $argument['properties'];
+        }
+
+        if ( isset( $argument['type'] ) ) {
+            $result['type'] = $argument['type'];
+        }
+
+        $this->fixupRequiredFields( $result );
+
+        return $result;
     }
 
     public function fixupRequiredFields( &$node ) {
