@@ -4,7 +4,7 @@ namespace OpenAPIGenerator;
 
 class Generator3_1_0 extends GeneratorBase {
 
-    protected $components = [];
+    protected $components = ['schemas' => []];
 
     public function generateDocument() {
         return apply_filters( 'openapi_generator_v3_1', $this->generateRoot(), $this);
@@ -131,7 +131,7 @@ class Generator3_1_0 extends GeneratorBase {
             'in' => $in,
             'description' => isset( $argument['description'] ) ? $argument['description'] : '',
             'required' => $in === 'path' ? true : (isset ( $argument['required'] ) ? $argument['required'] : false),
-            'schema' => $this->generateArgumentSchema( $argumentName, $argument )
+            'schema' => $this->generateSchemaObject( $argument )
         ];
 
         return $result;
@@ -145,9 +145,6 @@ class Generator3_1_0 extends GeneratorBase {
         //$this->extractReusableSchema( $schema, $schemaName, $schemaName );
 
         //add schema to the current schema pool to add it to the components part of the document later on.
-        if ( !isset( $this->components['schemas'] ) ) {
-            $this->components['schemas'] = [];
-        }
         $this->components['schemas'][$schemaName] = $this->generateSchemaObject( $schema );
 
         return [
@@ -166,15 +163,26 @@ class Generator3_1_0 extends GeneratorBase {
             $result['type'] = $schemaObject['type'];
 
             if ($schemaObject['type'] === 'object' && isset($schemaObject['properties'])) {
+                $requiredProperties = [];
+
                 foreach($schemaObject['properties'] as $key => $parameter) {
                     $result['properties'][$key] = $this->generateSchemaObject($parameter);
+
+                    if ( isset($schemaObject['properties'][$key]['required']) &&
+                        $schemaObject['properties'][$key]['required'] === true) {
+                        $requiredProperties[] = $key;
+                    }
                 }
+                $result['required'] = array_merge( 
+                                        isset( $schemaObject['properties']['required'] ) ?
+                                            $schemaObject['properties']['required'] :
+                                            [],
+                                        $requiredProperties
+                                    );
             }
 
             if ($schemaObject['type'] === 'array' && isset($schemaObject['items'])) {
-                foreach($schemaObject['items'] as $key => $item) {
-                    $result['items'][$key] = $this->generateSchemaObject($item);
-                }
+                $result['items'] = $this->generateSchemaObject($schemaObject['items']);
             }
         }
 
@@ -182,35 +190,13 @@ class Generator3_1_0 extends GeneratorBase {
             $result['format'] = $schemaObject['format'];
         }
 
+        if (isset($schemaObject['description'])) {
+            $result['description'] = $schemaObject['description'];
+        }
+
         if (isset($schemaObject['enum'])) {
             $result['enum'] = array_values( $schemaObject['enum'] );
         }
-
-        return $result;
-    }
-
-    public function generateArgumentSchema( $argumentName, $argument ) {
-
-        $result = [
-            'type' => 'string'
-        ];
-
-        //always add items if it exists, even if 'type' might not be 'array'
-        if ( isset( $argument['items'] ) ) {
-            $result['items'] = $argument['items'];
-        }
-
-        //always add properties if it exists, even if 'type' might not be 'object'
-        if ( isset( $argument['properties'] ) ) {
-            $result['properties'] = $argument['properties'];
-        }
-
-        if ( isset( $argument['type'] ) ) {
-            $result['type'] = $argument['type'];
-        }
-
-        $this->fixupRequiredFields( $result );
-        $this->extractReusableSchema( $result, $argumentName, $argumentName );
 
         return $result;
     }
@@ -287,56 +273,6 @@ class Generator3_1_0 extends GeneratorBase {
             $node['$ref'] = '#/components/schemas/' . $newKey;
 
         }
-/*
-
-
-            foreach ( $node['properties'] as $propKey => $propType ) {
-
-                if ( !isset( $propType['type'] ) || ($propType['type'] !== 'object' && $propType['type'] !== 'array') ) { 
-                    continue;
-                }
-
-                $originalPropKey = $propKey;
-
-                if ( !isset( $this->components['schemas'] ) ) {
-                    $this->components['schemas'] = [];
-                }
-
-                if ( isset( $this->components['schemas'][$propKey] ) && $this->components['schemas'][$propKey] !== $propType ) {
-
-                    //we have a clash..
-                    $propKey = $context . '_' . $originalPropKey;
-                    
-                    $i = 1;
-                    while ( isset( $this->components['schemas'][$propKey] ) &&
-                            $this->components['schemas'][$propKey] !== $propType ) {
-                        $propKey = $context . '_' . $originalPropKey . '_' . $i++;
-                    }
-
-
-                    //die(print_r($propType, true) . ' ' . print_r( $this->components['schemas'][$propKey], true));
-                    //throw new \Error( 'CLASH' );
-                }
-
-                $this->components['schemas'][$propKey] = $propType;
-
-                //find matching type
-                /*foreach ( $this->components['schemas'] as $existingSchemaName => $existingType ) {
-                    if ( $existingType === $propType ) {
-                        $generatedSchemaKey = $existingSchemaName;
-                        break;
-                    }
-                }
-
-                if ( !$generatedSchemaKey ) {
-                    $generatedSchemaKey = wp_generate_uuid4();
-                    $propType['name'] = $propKey;
-                    $this->components['schemas'][$propKey] = $propType;            
-                }
-
-                $node['properties'][$originalPropKey] = [ '$ref' => '#/components/schemas/' . $propKey ];
-            }
-        }*/
     }
 
     public function generateSecurity() {
