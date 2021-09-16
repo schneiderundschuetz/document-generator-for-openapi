@@ -112,7 +112,6 @@ class Generator3_1_0 extends GeneratorBase {
 
                 //if a schema is defined for the reponse of the current route add it.
                 if ( isset( $spec['schema'] ) && !empty( $spec['schema'] )) {
-
                     $method['responses']['200']['content'] = $this->generateResponseSchema( $spec['schema'] );
                 }
 
@@ -149,7 +148,7 @@ class Generator3_1_0 extends GeneratorBase {
         if ( !isset( $this->components['schemas'] ) ) {
             $this->components['schemas'] = [];
         }
-        $this->components['schemas'][$schemaName] = $schema;
+        $this->components['schemas'][$schemaName] = $this->generateSchemaObject( $schema );
 
         return [
             'application/json' => [
@@ -158,7 +157,36 @@ class Generator3_1_0 extends GeneratorBase {
                 ]
             ]
         ];
+    }
 
+    public function generateSchemaObject( $schemaObject ) {
+        $result = ['type' => 'string'];
+
+        if ( isset( $schemaObject['type'] ) ) {
+            $result['type'] = $schemaObject['type'];
+
+            if ($schemaObject['type'] === 'object' && isset($schemaObject['properties'])) {
+                foreach($schemaObject['properties'] as $key => $parameter) {
+                    $result['properties'][$key] = $this->generateSchemaObject($parameter);
+                }
+            }
+
+            if ($schemaObject['type'] === 'array' && isset($schemaObject['items'])) {
+                foreach($schemaObject['items'] as $key => $item) {
+                    $result['items'][$key] = $this->generateSchemaObject($item);
+                }
+            }
+        }
+
+        if (isset($schemaObject['format'])) {
+            $result['format'] = $schemaObject['format'];
+        }
+
+        if (isset($schemaObject['enum'])) {
+            $result['enum'] = array_values( $schemaObject['enum'] );
+        }
+
+        return $result;
     }
 
     public function generateArgumentSchema( $argumentName, $argument ) {
