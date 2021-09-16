@@ -6,6 +6,14 @@ class Generator3_1_0 extends GeneratorBase {
 
     protected $components = ['schemas' => []];
 
+    public $extractCommonTypes = false;    
+
+    public function __construct($namespace, $routes, $extractCommonTypes) {
+        parent::__construct($namespace, $routes);
+
+        $this->extractCommonTypes = $extractCommonTypes;
+    }
+
     public function generateDocument() {
         return apply_filters( 'openapi_generator_v3_1', $this->generateRoot(), $this);
     }
@@ -112,7 +120,9 @@ class Generator3_1_0 extends GeneratorBase {
 
                 //if a schema is defined for the reponse of the current route add it.
                 if ( isset( $spec['schema'] ) && !empty( $spec['schema'] )) {
-                    $method['responses']['200']['content'] = $this->generateResponseSchema( $spec['schema'] );
+                    $method['responses']['200']['content'] = $this->generateResponseSchema( $spec['schema'], [
+                        'currentKey' => null   
+                    ]);
                 }
 
                 //create operation object for path item with the specific method
@@ -124,14 +134,14 @@ class Generator3_1_0 extends GeneratorBase {
     }
 
     public function generateParameterObject( $argumentName, $argument, $substitutions ) {
-        $in = \array_key_exists( $argumentName, $substitutions ) ? 'path' : 'query';
+        $in = array_key_exists( $argumentName, $substitutions ) ? 'path' : 'query';
         
         $result = [
             'name' => $argumentName,
             'in' => $in,
             'description' => isset( $argument['description'] ) ? $argument['description'] : '',
             'required' => $in === 'path' ? true : (isset ( $argument['required'] ) ? $argument['required'] : false),
-            'schema' => $this->generateSchemaObject( $argument )
+            'schema' => $this->generateSchemaObject( $argument, [ 'currentKey' => $argumentName ] )
         ];
 
         return $result;
@@ -142,7 +152,9 @@ class Generator3_1_0 extends GeneratorBase {
         $schemaName = $schema['title'];
 
         //add schema to the current schema pool to add it to the components part of the document later on.
-        $this->components['schemas'][$schemaName] = $this->generateSchemaObject( $schema );
+        $this->components['schemas'][$schemaName] = $this->generateSchemaObject( $schema, [
+            'currentKey' => null
+        ]);
 
         return [
             'application/json' => [
@@ -153,7 +165,7 @@ class Generator3_1_0 extends GeneratorBase {
         ];
     }
 
-    public function generateSchemaObject( $schemaObject ) {
+    public function generateSchemaObject( $schemaObject, $context ) {
 
         if ( isset( $schemaObject['type'] ) ) {
             if ( is_array( $schemaObject['type'] ) &&
@@ -163,7 +175,8 @@ class Generator3_1_0 extends GeneratorBase {
                 $result['oneOf'] = [];
 
                 foreach( $schemaObject['oneOf'] as $type) {
-                    $result['oneOf'][] = $this->generateSchemaObject($type);
+                    $result['oneOf'][] = $this->generateSchemaObject( $type,
+                                            array_merge( $context, [ 'currentKey' => null ] ) );
                 }
 
             } else {
@@ -173,7 +186,8 @@ class Generator3_1_0 extends GeneratorBase {
                     $requiredProperties = [];
 
                     foreach($schemaObject['properties'] as $key => $parameter) {
-                        $result['properties'][$key] = $this->generateSchemaObject($parameter);
+                        $result['properties'][$key] = $this->generateSchemaObject( $parameter,
+                                                        array_merge( $context, [ 'currentKey' => $key ] ) );
 
                         if ( isset($schemaObject['properties'][$key]['required']) &&
                             $schemaObject['properties'][$key]['required'] === true) {
@@ -187,7 +201,8 @@ class Generator3_1_0 extends GeneratorBase {
                 }
 
                 if ($schemaObject['type'] === 'array' && isset($schemaObject['items'])) {
-                    $result['items'] = $this->generateSchemaObject($schemaObject['items']);
+                    //TODO Is it safe to always pass context with same currentKey of parent?
+                    $result['items'] = $this->generateSchemaObject( $schemaObject['items'], $context );
                 }
 
             }
@@ -207,49 +222,30 @@ class Generator3_1_0 extends GeneratorBase {
             $result['enum'] = array_values( $schemaObject['enum'] );
         }
 
-        return $result;
-    }
-
-    public function extractReusableSchema( &$node, $currentKey, $context ) {
-        if ( !is_array( $node ) ) {
-            return;
-        }
-
-        //visit all leaves prior to changes
-        foreach( $node as $key => $value ) {
-            $this->extractReusableSchema( $node[$key], $key, $context );
-        }
-        
-        //when all children are visited,
-        //extract all objects
-        if ( isset( $node['type'] ) &&
-            $node['type'] === 'object' &&
-            isset( $node['properties'] )) {
+        if ($this->extractCommonTypes &&
+            isset( $result['type'] ) && 
+            $result['type'] === 'object' &&
+            $context['currentKey']) {
             
-            $uniqueKey = $currentKey;
-            if ($context !== $currentKey) {
-                $uniqueKey = $context . '_' . $currentKey;
-            }
+            $uriKey = $context['currentKey'];
 
-            unset( $node['properties'] );
-            unset( $node['type'] );
-            unset( $node['items'] );
-            unset( $node['context'] );
-            unset( $node['readonly'] );
-
+            //TODO Improve collission handling
             $i = 1;
-            $newKey = $uniqueKey;
-            while ( isset( $this->components['schemas'][$newKey] ) &&
-                $this->components['schemas'][$newKey] !== $node) {
-                    $newKey = $uniqueKey . '_' . $i++;
+            while ( isset(  $this->components['schemas'][$uriKey] ) &&
+                    $this->components['schemas'][$uriKey] !== $result ) {
+                $uriKey = $context['currentKey'] . '_' . $i++;
             }
 
-            $this->components['schemas'][$newKey] = $node;
+            $uri = '#/components/schemas/' . $uriKey;
 
+            $this->components['schemas'][$uriKey] = $result;
 
-            $node['$ref'] = '#/components/schemas/' . $newKey;
-
+            return [
+                '$ref' => $uri
+            ];
         }
+
+        return $result;
     }
 
     public function generateSecurity() {

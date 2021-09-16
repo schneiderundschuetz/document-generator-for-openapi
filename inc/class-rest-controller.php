@@ -43,7 +43,7 @@ class RestController {
         $data = rest_get_server()->get_data_for_routes( $routes, 'help' );
 
         //generate openapi document
-        $generator = new Generator3_1_0( $namespace, $data );
+        $generator = new Generator3_1_0( $namespace, $data, true );
         $result = $generator->generateDocument();
         
         return rest_ensure_response($result);
