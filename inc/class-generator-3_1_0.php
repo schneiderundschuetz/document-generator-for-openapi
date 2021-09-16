@@ -245,6 +245,28 @@ class Generator3_1_0 extends GeneratorBase {
             ];
         }
 
+        if ( $this->extractCommonTypes &&
+            isset( $result['enum'] ) && is_array( $result['enum'] ) ) {
+                
+            $uriKey = $context['currentKey'];
+
+            //TODO Improve collission handling
+            $i = 1;
+            while ( isset(  $this->components['schemas'][$uriKey] ) &&
+                    $this->components['schemas'][$uriKey] !== $result ) {
+                $uriKey = $context['currentKey'] . '_' . $i++;
+            }
+            
+            $uri = '#/components/schemas/' . $uriKey;
+
+            $this->components['schemas'][$uriKey] = $result;
+
+            return [
+                '$ref' => $uri
+            ];
+        }
+
+
         return $result;
     }
 
