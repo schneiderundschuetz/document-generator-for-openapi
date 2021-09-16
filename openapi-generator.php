@@ -1,7 +1,7 @@
 <?php
 /**
  * @wordpress-plugin
- * Plugin Name: OpenAPI Generator 
+ * Plugin Name: OpenAPI Document Generator 
  * Description: OpenAPI (fka. Swagger) Document Generator for WordPress REST API 
  * Version:     1.0.0
  * Author:      Schneider & Schuetz GmbH

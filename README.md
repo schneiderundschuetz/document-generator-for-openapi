@@ -1,8 +1,8 @@
-# OpenAPI Generator 
+# OpenAPI Document Generator 
 
 **Descriptions**
 
-This plugin generates OpenAPI (fka. Swagger) schemes for a given WordPress REST Api namespace.
+This plugin generates OpenAPI (fka. Swagger) documents for a given WordPress REST Api namespace.
   
 **Requirements**
 
