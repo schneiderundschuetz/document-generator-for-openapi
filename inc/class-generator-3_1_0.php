@@ -141,9 +141,6 @@ class Generator3_1_0 extends GeneratorBase {
                     
         $schemaName = $schema['title'];
 
-        $this->fixupRequiredFields( $schema );
-        //$this->extractReusableSchema( $schema, $schemaName, $schemaName );
-
         //add schema to the current schema pool to add it to the components part of the document later on.
         $this->components['schemas'][$schemaName] = $this->generateSchemaObject( $schema );
 
@@ -157,33 +154,45 @@ class Generator3_1_0 extends GeneratorBase {
     }
 
     public function generateSchemaObject( $schemaObject ) {
-        $result = ['type' => 'string'];
 
         if ( isset( $schemaObject['type'] ) ) {
-            $result['type'] = $schemaObject['type'];
+            if ( is_array( $schemaObject['type'] ) &&
+                isset( $schemaObject['oneOf'] ) && 
+                is_array( $schemaObject['oneOf'] ) ) {
 
-            if ($schemaObject['type'] === 'object' && isset($schemaObject['properties'])) {
-                $requiredProperties = [];
+                $result['oneOf'] = [];
 
-                foreach($schemaObject['properties'] as $key => $parameter) {
-                    $result['properties'][$key] = $this->generateSchemaObject($parameter);
+                foreach( $schemaObject['oneOf'] as $type) {
+                    $result['oneOf'][] = $this->generateSchemaObject($type);
+                }
 
-                    if ( isset($schemaObject['properties'][$key]['required']) &&
-                        $schemaObject['properties'][$key]['required'] === true) {
-                        $requiredProperties[] = $key;
+            } else {
+                $result['type'] = $schemaObject['type'];
+
+                if ($schemaObject['type'] === 'object' && isset($schemaObject['properties'])) {
+                    $requiredProperties = [];
+
+                    foreach($schemaObject['properties'] as $key => $parameter) {
+                        $result['properties'][$key] = $this->generateSchemaObject($parameter);
+
+                        if ( isset($schemaObject['properties'][$key]['required']) &&
+                            $schemaObject['properties'][$key]['required'] === true) {
+                            $requiredProperties[] = $key;
+                        }
+                    }
+
+                    if (!empty($requiredProperties)) {
+                        $result['required'] = $requiredProperties;
                     }
                 }
-                $result['required'] = array_merge( 
-                                        isset( $schemaObject['properties']['required'] ) ?
-                                            $schemaObject['properties']['required'] :
-                                            [],
-                                        $requiredProperties
-                                    );
-            }
 
-            if ($schemaObject['type'] === 'array' && isset($schemaObject['items'])) {
-                $result['items'] = $this->generateSchemaObject($schemaObject['items']);
+                if ($schemaObject['type'] === 'array' && isset($schemaObject['items'])) {
+                    $result['items'] = $this->generateSchemaObject($schemaObject['items']);
+                }
+
             }
+        } else {
+            $result = ['type' => 'string'];
         }
 
         if (isset($schemaObject['format'])) {
@@ -199,38 +208,6 @@ class Generator3_1_0 extends GeneratorBase {
         }
 
         return $result;
-    }
-
-    public function fixupRequiredFields( &$node ) {
-        if ( !is_array( $node ) ) {
-            return;
-        }
-
-        //get all required fields of property collections
-        //and put those into a required array on the parent node
-        if ( isset( $node['type'] ) && $node['type'] === 'object' && isset( $node['properties'] ) ) {
-            $required = [];
-
-            foreach( $node['properties'] as $propertyName => $property ) {
-                if ( isset( $property['required'] ) ) {
-                    if ( $property['required'] === true || strtowlower($property['required']) === 'true' ) {
-                        $required[] = $propertyName;
-                    }
-
-                    unset( $node['properties'][$propertyName]['required'] );
-                }
-            }
-
-            if (!empty( $required )) {
-                $node['required'] = $required;
-            }
-        }
-
-        foreach( $node as $key => $val ) {
-            if ( is_array( $val ) ) {
-                $this->fixupRequiredFields( $node[$key] );
-            }
-        }
     }
 
     public function extractReusableSchema( &$node, $currentKey, $context ) {
