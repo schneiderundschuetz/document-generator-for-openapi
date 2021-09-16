@@ -59,7 +59,7 @@ class Generator3_1_0 extends GeneratorBase {
             $substitutions = $this->getSubstitutions( $url );
 
             //replace all regex substituions with OpenAPI substitutions
-            $url = preg_replace( '/\(\?P\<(.*?)\>.*?\)/', '{$1}', $url );  
+            $url = preg_replace( '/\(\?P\<(.*?)\>.*?\)(\/|$)/', '{$1}$2', $url );  
 
             $result[ $url ] = $this->generatePathItem( $spec, $substitutions );
         }
@@ -74,7 +74,7 @@ class Generator3_1_0 extends GeneratorBase {
         //url/{paramname}/further/url
 
         $substitutions = [];
-        $found = preg_match_all('/\(\?P\<(.*?)\>(.*?)\)/', $url, $matches, PREG_SET_ORDER);
+        $found = preg_match_all( '/\(\?P\<(.*?)\>(.*?)\)(\/|$)/', $url, $matches, PREG_SET_ORDER);
         if ($found && $found > 0) {
             //for each found substituion, store the given regex
             foreach ($matches as $foundSubstitution) {
@@ -96,7 +96,7 @@ class Generator3_1_0 extends GeneratorBase {
             //this means, yes, currently those parameters are duplicated in the OpenAPI document
             //because we don't use refs yet. 
             foreach ( $endpoint['args'] as $argumentName => $argument ) {
-                $parameters[] = $this->generateParameterObject( $argumentName, $argumentName, $substitutions );
+                $parameters[] = $this->generateParameterObject( $argumentName, $argument, $substitutions );
             }
 
             foreach ( $endpoint['methods'] as $methodName ) {
@@ -125,36 +125,17 @@ class Generator3_1_0 extends GeneratorBase {
     }
 
     public function generateParameterObject( $argumentName, $argument, $substitutions ) {
+        $in = \array_key_exists( $argumentName, $substitutions ) ? 'path' : 'query';
+        
         $result = [
             'name' => $argumentName,
-            'in' => \array_key_exists( $argumentName, $substitutions ) ? 'path' : 'query',
+            'in' => $in,
             'description' => isset( $argument['description'] ) ? $argument['description'] : '',
-            'required' => isset ( $argument['required'] ) ? $argument['required'] : 'false',
-            'schema' => $this->generateArgumentSchema( $argument )
+            'required' => $in === 'path' ? true : (isset ( $argument['required'] ) ? $argument['required'] : false),
+            'schema' => $this->generateArgumentSchema( $argumentName, $argument )
         ];
 
-        if ( !isset( $this->components['parameters'] ) ) {
-            $this->components['parameters'] = [];
-        }
-
-        //do we already have an equal parameter?
-
-        $generatedParameterKey = null;
-        foreach ( $this->components['parameters'] as $key => $parameter ) {
-            if ( $parameter === $result ) {
-                $generatedParameterKey = $key;
-                break;
-            }
-        }
-        
-        if ( !$generatedParameterKey ) {
-            $generatedParameterKey = wp_generate_uuid4();
-            $this->components['parameters'][$generatedParameterKey] = $result;
-        }
-
-        return [
-            '$ref' => '#/components/parameters/' . $generatedParameterKey
-        ];
+        return $result;
     }
 
     public function generateResponseSchema( $schema ) {
@@ -162,6 +143,7 @@ class Generator3_1_0 extends GeneratorBase {
         $schemaName = $schema['title'];
 
         $this->fixupRequiredFields( $schema );
+        //$this->extractReusableSchema( $schema, $schemaName, $schemaName );
 
         //add schema to the current schema pool to add it to the components part of the document later on.
         if ( !isset( $this->components['schemas'] ) ) {
@@ -179,7 +161,7 @@ class Generator3_1_0 extends GeneratorBase {
 
     }
 
-    public function generateArgumentSchema( $argument ) {
+    public function generateArgumentSchema( $argumentName, $argument ) {
 
         $result = [
             'type' => 'string'
@@ -200,6 +182,7 @@ class Generator3_1_0 extends GeneratorBase {
         }
 
         $this->fixupRequiredFields( $result );
+        $this->extractReusableSchema( $result, $argumentName, $argumentName );
 
         return $result;
     }
@@ -215,9 +198,11 @@ class Generator3_1_0 extends GeneratorBase {
             $required = [];
 
             foreach( $node['properties'] as $propertyName => $property ) {
-                if ( isset( $property['required'] ) && 
-                    ($property['required'] === true || strtowlower($property['required']) === 'true') ) {
-                    $required[] = $propertyName;
+                if ( isset( $property['required'] ) ) {
+                    if ( $property['required'] === true || strtowlower($property['required']) === 'true' ) {
+                        $required[] = $propertyName;
+                    }
+
                     unset( $node['properties'][$propertyName]['required'] );
                 }
             }
@@ -234,29 +219,96 @@ class Generator3_1_0 extends GeneratorBase {
         }
     }
 
-    public function generateArgumentSchema( $argument ) {
-
-        $result = [
-            'type' => 'string'
-        ];
-
-        //always add items if it exists, even if 'type' might not be 'array'
-        if ( isset( $argument['items'] ) ) {
-            $result['items'] = $argument['items'];
+    public function extractReusableSchema( &$node, $currentKey, $context ) {
+        if ( !is_array( $node ) ) {
+            return;
         }
 
-        //always add properties if it exists, even if 'type' might not be 'object'
-        if ( isset( $argument['properties'] ) ) {
-            $result['properties'] = $argument['properties'];
+        //visit all leaves prior to changes
+        foreach( $node as $key => $value ) {
+            $this->extractReusableSchema( $node[$key], $key, $context );
         }
+        
+        //when all children are visited,
+        //extract all objects
+        if ( isset( $node['type'] ) &&
+            $node['type'] === 'object' &&
+            isset( $node['properties'] )) {
+            
+            $uniqueKey = $currentKey;
+            if ($context !== $currentKey) {
+                $uniqueKey = $context . '_' . $currentKey;
+            }
 
-        if ( isset( $argument['type'] ) ) {
-            $result['type'] = $argument['type'];
+            unset( $node['properties'] );
+            unset( $node['type'] );
+            unset( $node['items'] );
+            unset( $node['context'] );
+            unset( $node['readonly'] );
+
+            $i = 1;
+            $newKey = $uniqueKey;
+            while ( isset( $this->components['schemas'][$newKey] ) &&
+                $this->components['schemas'][$newKey] !== $node) {
+                    $newKey = $uniqueKey . '_' . $i++;
+            }
+
+            $this->components['schemas'][$newKey] = $node;
+
+
+            $node['$ref'] = '#/components/schemas/' . $newKey;
+
         }
+/*
 
-        $this->fixupRequiredFields( $result );
 
-        return $result;
+            foreach ( $node['properties'] as $propKey => $propType ) {
+
+                if ( !isset( $propType['type'] ) || ($propType['type'] !== 'object' && $propType['type'] !== 'array') ) { 
+                    continue;
+                }
+
+                $originalPropKey = $propKey;
+
+                if ( !isset( $this->components['schemas'] ) ) {
+                    $this->components['schemas'] = [];
+                }
+
+                if ( isset( $this->components['schemas'][$propKey] ) && $this->components['schemas'][$propKey] !== $propType ) {
+
+                    //we have a clash..
+                    $propKey = $context . '_' . $originalPropKey;
+                    
+                    $i = 1;
+                    while ( isset( $this->components['schemas'][$propKey] ) &&
+                            $this->components['schemas'][$propKey] !== $propType ) {
+                        $propKey = $context . '_' . $originalPropKey . '_' . $i++;
+                    }
+
+
+                    //die(print_r($propType, true) . ' ' . print_r( $this->components['schemas'][$propKey], true));
+                    //throw new \Error( 'CLASH' );
+                }
+
+                $this->components['schemas'][$propKey] = $propType;
+
+                //find matching type
+                /*foreach ( $this->components['schemas'] as $existingSchemaName => $existingType ) {
+                    if ( $existingType === $propType ) {
+                        $generatedSchemaKey = $existingSchemaName;
+                        break;
+                    }
+                }
+
+                if ( !$generatedSchemaKey ) {
+                    $generatedSchemaKey = wp_generate_uuid4();
+                    $propType['name'] = $propKey;
+                    $this->components['schemas'][$propKey] = $propType;            
+                }
+
+                $node['properties'][$originalPropKey] = [ '$ref' => '#/components/schemas/' . $propKey ];
+            }
+        }*/
     }
 
     public function generateSecurity() {
