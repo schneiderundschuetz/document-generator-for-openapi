@@ -37,6 +37,14 @@ class RestController {
                                     [ 'status' => 400 ] );
         }
 
+        //the namespace needs to exist
+        if ( !in_array( $namespace, rest_get_server()->get_namespaces() ) ) {
+            return new \WP_Error( 'namespace_not_found',
+                                    esc_html__( 'The namespace is invalid',
+                                                'openapi-generator' ),
+                                    [ 'status' => 400 ] );
+        }
+
         //get wordpress rest schema
         $routes = rest_get_server()->get_routes( $request['namespace'] );
         
