@@ -8,14 +8,14 @@ class Generator3_1_0 extends GeneratorBase {
 
     public $extractCommonTypes = false;    
 
-    public function __construct($namespace, $routes, $extractCommonTypes) {
+    public function __construct( $namespace, $routes, $extractCommonTypes ) {
         parent::__construct($namespace, $routes);
 
         $this->extractCommonTypes = $extractCommonTypes;
     }
 
     public function generateDocument() {
-        return apply_filters( 'openapi_generator_v3_1', $this->generateRoot(), $this);
+        return apply_filters( 'openapi_generator_v3_1', $this->generateRoot(), $this );
     }
 
     public function generateRoot () {
@@ -28,7 +28,7 @@ class Generator3_1_0 extends GeneratorBase {
             'security' => $this->generateSecurity()
         ];
 
-        if ( !empty( $this->components )) {
+        if ( !empty( $this->components ) ) {
             $result['components'] = $this->components;
         }
 
@@ -60,7 +60,7 @@ class Generator3_1_0 extends GeneratorBase {
 
         $result = [];
 
-        foreach ($this->routes as $url => $spec) {
+        foreach ( $this->routes as $url => $spec ) {
             //remove namespace portion from url
             $url = preg_replace( '#' . $this->namespace . '/?#' , '', $url );
 
@@ -82,10 +82,10 @@ class Generator3_1_0 extends GeneratorBase {
         //url/{paramname}/further/url
 
         $substitutions = [];
-        $found = preg_match_all( '/\(\?P\<(.*?)\>(.*?)\)(\/|$)/', $url, $matches, PREG_SET_ORDER);
-        if ($found && $found > 0) {
+        $found = preg_match_all( '/\(\?P\<(.*?)\>(.*?)\)(\/|$)/', $url, $matches, PREG_SET_ORDER );
+        if ( $found && $found > 0 ) {
             //for each found substituion, store the given regex
-            foreach ($matches as $foundSubstitution) {
+            foreach ( $matches as $foundSubstitution ) {
                 $substitutions[$foundSubstitution[1]] = $foundSubstitution[2]; 
             }
         }
@@ -126,7 +126,7 @@ class Generator3_1_0 extends GeneratorBase {
                 }
 
                 //create operation object for path item with the specific method
-                $result[strtolower($methodName)] = $method;
+                $result[strtolower( $methodName )] = $method;
             }
         }
 
@@ -140,7 +140,7 @@ class Generator3_1_0 extends GeneratorBase {
             'name' => $argumentName,
             'in' => $in,
             'description' => isset( $argument['description'] ) ? $argument['description'] : '',
-            'required' => $in === 'path' ? true : (isset ( $argument['required'] ) ? $argument['required'] : false),
+            'required' => $in === 'path' ? true : (isset ( $argument['required'] ) ? $argument['required'] : false ),
             'schema' => $this->generateSchemaObject( $argument, [ 'currentKey' => $argumentName ] )
         ];
 
@@ -174,7 +174,7 @@ class Generator3_1_0 extends GeneratorBase {
 
                 $result['oneOf'] = [];
 
-                foreach( $schemaObject['oneOf'] as $type) {
+                foreach( $schemaObject['oneOf'] as $type ) {
                     $result['oneOf'][] = $this->generateSchemaObject( $type,
                                             array_merge( $context, [ 'currentKey' => null ] ) );
                 }
@@ -182,25 +182,25 @@ class Generator3_1_0 extends GeneratorBase {
             } else {
                 $result['type'] = $schemaObject['type'];
 
-                if ($schemaObject['type'] === 'object' && isset($schemaObject['properties'])) {
+                if ( $schemaObject['type'] === 'object' && isset( $schemaObject['properties'] ) ) {
                     $requiredProperties = [];
 
-                    foreach($schemaObject['properties'] as $key => $parameter) {
+                    foreach( $schemaObject['properties'] as $key => $parameter) {
                         $result['properties'][$key] = $this->generateSchemaObject( $parameter,
                                                         array_merge( $context, [ 'currentKey' => $key ] ) );
 
-                        if ( isset($schemaObject['properties'][$key]['required']) &&
+                        if ( isset( $schemaObject['properties'][$key]['required'] ) &&
                             $schemaObject['properties'][$key]['required'] === true) {
                             $requiredProperties[] = $key;
                         }
                     }
 
-                    if (!empty($requiredProperties)) {
+                    if ( !empty($requiredProperties) ) {
                         $result['required'] = $requiredProperties;
                     }
                 }
 
-                if ($schemaObject['type'] === 'array' && isset($schemaObject['items'])) {
+                if ( $schemaObject['type'] === 'array' && isset( $schemaObject['items'] ) ) {
                     //TODO Is it safe to always pass context with same currentKey of parent?
                     $result['items'] = $this->generateSchemaObject( $schemaObject['items'], $context );
                 }
@@ -210,22 +210,22 @@ class Generator3_1_0 extends GeneratorBase {
             $result = ['type' => 'string'];
         }
 
-        if (isset($schemaObject['format'])) {
+        if ( isset( $schemaObject['format'] ) ) {
             $result['format'] = $schemaObject['format'];
         }
 
-        if (isset($schemaObject['description'])) {
+        if ( isset( $schemaObject['description'] ) ) {
             $result['description'] = $schemaObject['description'];
         }
 
-        if (isset($schemaObject['enum'])) {
+        if ( isset( $schemaObject['enum'] ) ) {
             $result['enum'] = array_values( $schemaObject['enum'] );
         }
 
-        if ($this->extractCommonTypes &&
+        if ( $this->extractCommonTypes &&
             isset( $result['type'] ) && 
             $result['type'] === 'object' &&
-            $context['currentKey']) {
+            $context['currentKey'] ) {
             
             $uriKey = $context['currentKey'];
 
