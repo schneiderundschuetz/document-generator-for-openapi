@@ -15,7 +15,8 @@ class RestController {
                 'callback' => [ $this, 'generate_document' ],
                 'permission_callback' => [ $this, 'generate_document_permission_check' ],
                 'args' => $this->get_generate_document_args()
-            ]
+            ],
+            'schema' => [ $this, 'get_generate_document_schema' ]
         ]);
     }
 
@@ -25,12 +26,17 @@ class RestController {
 
     public function generate_document( $request ) {
         $namespace = '';
+        $extract_common_types = false;
 
-        if ( isset( $request['namespace'] )) {
+        if ( isset( $request['namespace'] ) ) {
             $namespace = $request['namespace'];
         }
 
-        if ( empty( $namespace )) {
+        if ( isset( $request['extract_common_types'] ) ) {
+            $extract_common_types = $request['extract_common_types'] === true;
+        }
+
+        if ( empty( $namespace ) ) {
             return new \WP_Error( 'namespace_empty',
                                     esc_html__( 'The namespace needs to be defined',
                                                 'openapi-generator' ),
@@ -51,7 +57,8 @@ class RestController {
         $data = rest_get_server()->get_data_for_routes( $routes, 'help' );
 
         //generate openapi document
-        $generator = new Generator3_1_0( $namespace, $data, true );
+        //TODO create factory for switching between version
+        $generator = new Generator3_1_0( $namespace, $data, $extract_common_types );
         $result = $generator->generateDocument();
         
         return rest_ensure_response($result);
@@ -63,8 +70,24 @@ class RestController {
                 'description' => esc_html__( 'The namespace for which the OpenAPI document should be generated.',
                                                 'openapi-generator' ),
                 'type' => 'string',
-                'required' => 'true'
+                'required' => true
+            ],
+            'extract_common_types' => [
+                'description' => esc_html__( 'Defines if JSON schema objects should be extracted and, if equal, merged to one single named type.',
+                                                'openapi-generator' ),
+                'type' => 'boolean',
+                'required' => false
             ]
         ];
+    }
+
+    public function get_generate_document_schema() {
+
+        //TODO is this a legal JSON schema?
+        return [
+            '$schema'    => 'https://json-schema.org/draft/2020-12/schema',
+            '$ref' => 'https://spec.openapis.org/oas/3.1/schema/2021-05-20'
+        ];
+
     }
 }
