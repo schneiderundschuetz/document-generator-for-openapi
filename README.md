@@ -1,4 +1,4 @@
-# Document Generator for OpenAPI
+# WordPress Document Generator for OpenAPI
 
 ## Description
 
