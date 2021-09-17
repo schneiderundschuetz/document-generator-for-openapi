@@ -8,7 +8,7 @@
  * Author URI:  https://www.schneiderundschuetz.com/
  * License:     GPL-2.0+
  * License URI: http://www.gnu.org/licenses/gpl-2.0.txt
- * Text Domain: openapi-generator
+ * Text Domain: document-generator-for-openapi
  * Domain Path: /languages
  */
 
@@ -25,4 +25,4 @@ function OpenApiGenerator() {
     return \OpenAPIGenerator\Integration::instance();
 }
 
-$GLOBALS['openapi_generator_integration'] = OpenApiGenerator();
+$GLOBALS['document_generator_for_openapi_integration'] = OpenApiGenerator();

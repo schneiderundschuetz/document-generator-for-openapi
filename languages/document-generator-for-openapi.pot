@@ -2,9 +2,9 @@
 msgid ""
 msgstr ""
 "Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
-"Project-Id-Version: OpenAPI Document Generator\n"
-"POT-Creation-Date: 2021-09-17 11:07+0200\n"
-"PO-Revision-Date: 2021-09-17 11:06+0200\n"
+"Project-Id-Version: Document Generator for OpenAPI\n"
+"POT-Creation-Date: 2021-09-17 12:27+0200\n"
+"PO-Revision-Date: 2021-09-17 12:27+0200\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "MIME-Version: 1.0\n"
@@ -13,14 +13,13 @@ msgstr ""
 "X-Generator: Poedit 2.4.3\n"
 "X-Poedit-Basepath: ..\n"
 "X-Poedit-Flags-xgettext: --add-comments=translators:\n"
-"X-Poedit-WPHeader: openapi-generator.php\n"
+"X-Poedit-WPHeader: document-generator-for-openapi.php\n"
 "X-Poedit-SourceCharset: UTF-8\n"
 "X-Poedit-KeywordsList: __;_e;_n:1,2;_x:1,2c;_ex:1,2c;_nx:4c,1,2;esc_attr__;"
 "esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c;_n_noop:1,2;"
 "_nx_noop:3c,1,2;__ngettext_noop:1,2\n"
 "X-Poedit-SearchPath-0: .\n"
 "X-Poedit-SearchPathExcluded-0: *.min.js\n"
-"X-Poedit-SearchPathExcluded-1: node_modules\n"
 
 #: inc/class-generator-3_1_0.php:43
 #, php-format
@@ -46,7 +45,7 @@ msgid ""
 msgstr ""
 
 #. Plugin Name of the plugin/theme
-msgid "OpenAPI Document Generator"
+msgid "Document Generator for OpenAPI"
 msgstr ""
 
 #. Description of the plugin/theme

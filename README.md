@@ -8,13 +8,13 @@ This plugin generates OpenAPI (fka. Swagger) documents for a given WordPress RES
 
 This plugin reads the schema definition of a given WordPress REST Api namespace and transforms it to a
 OpenAPI document. The generator itself is exposed via the WordPress REST Api with the namespace 
-openapi-generator/v1.
+document-generator-for-openapi/v1.
 
 ## Usage
 
 * Install plugin via WordPress Plugin repository or by manually copying files
 * Activate the plugin
-* Access the REST Api of the generator by calling /wp-json/openapi-generator/v1/document?namespace=\<NAMESPACE\> and your OpenAPI document will be returned.
+* Access the REST Api of the generator by calling /wp-json/document-generator-for-openapi/v1/document?namespace=\<NAMESPACE\> and your OpenAPI document will be returned.
 
 ## Limitations and known issues
 

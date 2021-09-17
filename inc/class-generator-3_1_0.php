@@ -41,7 +41,7 @@ class Generator3_1_0 extends GeneratorBase {
             'summary' => esc_html(
                             sprintf(
                                 esc_html__( 'Generated OpenAPI document of the namespace %s on %s.',
-                                            'openapi-generator') ,
+                                            'document-generator-for-openapi') ,
                                             $this->namespace,
                                             get_option( 'blogname' )
                                 )

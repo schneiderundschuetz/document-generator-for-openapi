@@ -4,7 +4,7 @@ namespace OpenAPIGenerator;
 
 class RestController {
     public function __construct() {
-        $this->namespace = 'openapi-generator/v1';
+        $this->namespace = 'document-generator-for-openapi/v1';
         $this->resource_name = 'document';
     }
 
@@ -39,7 +39,7 @@ class RestController {
         if ( empty( $namespace ) ) {
             return new \WP_Error( 'namespace_empty',
                                     esc_html__( 'The namespace needs to be defined',
-                                                'openapi-generator' ),
+                                                'document-generator-for-openapi' ),
                                     [ 'status' => 400 ] );
         }
 
@@ -47,7 +47,7 @@ class RestController {
         if ( !in_array( $namespace, rest_get_server()->get_namespaces() ) ) {
             return new \WP_Error( 'namespace_not_found',
                                     esc_html__( 'The namespace is invalid',
-                                                'openapi-generator' ),
+                                                'document-generator-for-openapi' ),
                                     [ 'status' => 400 ] );
         }
 
@@ -68,13 +68,13 @@ class RestController {
         return [
             'namespace' => [
                 'description' => esc_html__( 'The namespace for which the OpenAPI document should be generated.',
-                                                'openapi-generator' ),
+                                                'document-generator-for-openapi' ),
                 'type' => 'string',
                 'required' => true
             ],
             'extract_common_types' => [
                 'description' => esc_html__( 'Defines if JSON schema objects should be extracted and, if equal, merged to one single named type.',
-                                                'openapi-generator' ),
+                                                'document-generator-for-openapi' ),
                 'type' => 'boolean',
                 'required' => false
             ]
