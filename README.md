@@ -1,4 +1,4 @@
-# OpenAPI Document Generator 
+# Document Generator for OpenAPI
 
 ## Description
 
