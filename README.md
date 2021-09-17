@@ -14,8 +14,7 @@ openapi-generator/v1.
 
 * Install plugin via WordPress Plugin repository or by manually copying files
 * Activate the plugin
-* Access the REST Api of the generator by calling /wp-json/openapi-generator/v1?namespace=
-* There is no UI yet
+* Access the REST Api of the generator by calling /wp-json/openapi-generator/v1/document?namespace=\<NAMESPACE\> and your OpenAPI document will be returned.
 
 ## Limitations and known issues
 
@@ -24,3 +23,4 @@ available.
 * No UI for configuration yet
 * Currently only version 3.1.0 of the OpenAPI specification is implemented. Swagger tools for 3.0.0 might work though.
 * Unittests are missing
+* Extensibility with hooks needs to be improved
