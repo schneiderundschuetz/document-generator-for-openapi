@@ -10,11 +10,13 @@ This plugin reads the schema definition of a given WordPress REST Api namespace 
 OpenAPI document. The generator itself is exposed via the WordPress REST Api with the namespace 
 document-generator-for-openapi/v1.
 
+Generate a document by calling /wp-json/document-generator-for-openapi/v1/document?namespace=\<NAMESPACE\>. It will return the OpenAPI document.
+
 ## Usage
 
-* Install plugin via WordPress Plugin repository or by manually copying files
-* Activate the plugin
-* Access the REST Api of the generator by calling /wp-json/document-generator-for-openapi/v1/document?namespace=\<NAMESPACE\> and your OpenAPI document will be returned.
+1. Install plugin via WordPress Plugin repository or by manually copying files
+2. Activate the plugin
+3. Access the REST Api of the generator by calling /wp-json/document-generator-for-openapi/v1/document?namespace=\<NAMESPACE\> and your OpenAPI document will be returned.
 
 ## Limitations and known issues
 
