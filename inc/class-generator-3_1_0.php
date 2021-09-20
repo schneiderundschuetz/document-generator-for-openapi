@@ -67,9 +67,23 @@ class Generator3_1_0 extends GeneratorBase {
             $substitutions = $this->getSubstitutions( $url );
 
             //replace all regex substituions with OpenAPI substitutions
-            $url = preg_replace( '/\(\?P\<(.*?)\>.*?\)(\/|$)/', '{$1}$2', $url );  
+            $url = preg_replace( '/\(\?P\<(.*?)\>.*?\)(\/|$)/', '{$1}$2', $url ); 
 
-            $result[ $url ] = $this->generatePathItem( $spec, $substitutions );
+            $name = '';
+            
+            //try to get a fallback entity name for this path by getting the last part of the url
+            //TODO we need to ignore all substitution names
+            $matches = [];
+            if ( preg_match_all( '/\/(.*?)(\/|$)/', $url, $matches, PREG_SET_ORDER ) ) {
+                $name = $matches[count($matches) - 1][1];
+            }
+
+            //it is better to use the name of the defined WP schema result if it exists
+            if ( isset( $spec['schema'] ) && isset( $spec['schema']['title'] ) ) {
+                $name = $spec['schema']['title'];
+            }
+
+            $result[ $url ] = $this->generatePathItem( $name, $spec, $substitutions );
         }
 
         return $result;
@@ -93,30 +107,69 @@ class Generator3_1_0 extends GeneratorBase {
         return $substitutions;
     }
 
-    public function generatePathItem( $spec, $substitutions ) {
+    public function generatePathItem( $name, $spec, $substitutions ) {
         
         $result = [];
 
         foreach ( $spec['endpoints'] as $endpoint ) {
             $parameters = [];
+            $contentProperties = [];
+            $substitutionParameters = [];
 
             //create parameters for all the following methods of this endpoint
             //this means, yes, currently those parameters are duplicated in the OpenAPI document
             //because we don't use refs yet. 
             foreach ( $endpoint['args'] as $argumentName => $argument ) {
-                $parameters[] = $this->generateParameterObject( $argumentName, $argument, $substitutions );
+                $paramSchema = $this->generateParameterObject( $argumentName, $argument, $substitutions );
+                $parameters[] = $paramSchema;
+
+                //if this is not a path parameter, add it to the content schema
+                if ( !array_key_exists( $argumentName, $substitutions ) ) {
+                    $contentProperties[ $argumentName ] = $this->generateSchemaObject( $argument, [
+                        'currentKey' => $argumentName   
+                    ] );
+                } else {
+                    $substitutionParameters[] = $paramSchema;
+                }
             }
 
             foreach ( $endpoint['methods'] as $methodName ) {
 
                 $method = [
-                    'parameters' => $parameters,
                     'responses' => [
                         '200' => ['description' => 'OK'],
                         '400' => ['description' => 'Bad Request'],
                         '404' => ['description' => 'Not Found']
                     ]
                 ];
+
+                //for all methods with possible request body content,
+                //we move the parameters to its requestbody
+                //all substitutions parameters should be kept in the query parameter list
+                if ( in_array(strtolower( $methodName ), ['post', 'put', 'patch'] ) ) {
+
+                    if (count($contentProperties)) {
+                        $method['requestBody'] = [
+                            'required' => true,
+                            'content' => [
+                                'application/json' => [
+                                    'schema' => [
+                                        'type' => 'object',
+                                        'title' => $name,
+                                        'properties' => $contentProperties
+                                    ]
+                                ]
+                            ]
+                        ];
+                    }
+  
+                    if ( count( $substitutionParameters ) ) {               
+                        $method['parameters'] = $substitutionParameters;
+                    }
+
+                } else {
+                    $method['parameters'] = $parameters;
+                }
 
                 //if a schema is defined for the reponse of the current route add it.
                 if ( isset( $spec['schema'] ) && !empty( $spec['schema'] )) {
