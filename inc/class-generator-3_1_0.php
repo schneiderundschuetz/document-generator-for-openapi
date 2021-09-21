@@ -173,9 +173,7 @@ class Generator3_1_0 extends GeneratorBase {
 
                 //if a schema is defined for the reponse of the current route add it.
                 if ( isset( $spec['schema'] ) && !empty( $spec['schema'] )) {
-                    $method['responses']['200']['content'] = $this->generateResponseSchema( $spec['schema'], [
-                        'currentKey' => null   
-                    ]);
+                    $method['responses']['200']['content'] = $this->generateResponseSchema( $spec['schema'] );
                 }
 
                 //create operation object for path item with the specific method
@@ -201,7 +199,7 @@ class Generator3_1_0 extends GeneratorBase {
     }
 
     public function generateResponseSchema( $schema ) {
-                    
+                  
         $schemaName = $schema['title'];
 
         //add schema to the current schema pool to add it to the components part of the document later on.
