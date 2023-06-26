@@ -165,7 +165,6 @@ class Generator3_1_0 extends GeneratorBase {
                     $substitutionParameters[] = $paramSchema;
                 }
             }
-
             foreach ( $endpoint['methods'] as $methodName ) {
 
                 $method = [
@@ -184,6 +183,14 @@ class Generator3_1_0 extends GeneratorBase {
                         '404' => ['description' => 'Not Found']
                     ]
                 ];
+
+
+
+                if(isset($spec['schema']['tags'])) {
+                    $method['tags'] = $spec['schema']['tags'];
+                }
+                else 
+                    $method['tags'] = ['root'];
 
                 //for all methods with possible request body content,
                 //we move the parameters to its requestbody
