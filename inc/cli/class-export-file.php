@@ -46,13 +46,13 @@ class ExportFile {
 		//TODO create factory for switching between version
 		$generator = new \OpenAPIGenerator\Generator3_1_0( $namespace, $data, $extract_common_types );
 		$result = $generator->generateDocument();
-        $openapiJSON = json_encode($result);
+		$openapiJSON = json_encode($result);
 
-        //write json to file
-        if (file_put_contents($output, $openapiJSON))
-            \WP_CLI::success("The JSON file ($output) created successfully.");
-        else 
-            \WP_CLI::error( "Error creating json file: $output", true );
+		//write json to file
+		if (file_put_contents($output, $openapiJSON))
+			\WP_CLI::success("The JSON file ($output) created successfully.");
+		else 
+			\WP_CLI::error( "Error creating json file: $output", true );
 	}
 }
 
