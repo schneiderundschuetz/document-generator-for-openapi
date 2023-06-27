@@ -4,7 +4,8 @@ namespace OpenAPIGenerator;
 
 abstract class GeneratorBase {
     
-    public $routes;
+    protected $routes;
+    protected $namespace;
 
     public function __construct($namespace, $routes) {
         $this->namespace = $namespace;
