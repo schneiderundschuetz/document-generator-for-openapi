@@ -3,6 +3,10 @@
 namespace OpenAPIGenerator;
 
 class RestController {
+
+    protected $namespace;
+    protected $resource_name;
+
     public function __construct() {
         $this->namespace = 'document-generator-for-openapi/v1';
         $this->resource_name = 'document';
