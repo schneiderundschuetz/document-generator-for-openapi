@@ -1,7 +1,8 @@
 <?php 
 
 namespace OpenAPIGenerator;
-require_once __DIR__ . '/cli/class-export-file.php';
+
+require_once __DIR__ . '/cli/class-document-generator-command.php';
 
 class GeneratorCLI {
 	
@@ -23,7 +24,7 @@ class GeneratorCLI {
 	
 	function add_commands()
 	{
-		\WP_CLI::add_command('openapi-generator export-file', 'OpenAPIGenerator\cli\ExportFile');
+		\WP_CLI::add_command('openapi-generator', \OpenAPIGenerator\cli\DocumentGenerator_Command::class);
 	}
 }
 

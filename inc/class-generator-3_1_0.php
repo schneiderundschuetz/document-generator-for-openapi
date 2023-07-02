@@ -4,7 +4,7 @@ namespace OpenAPIGenerator;
 
 class Generator3_1_0 extends GeneratorBase {
 
-    protected $components = ['schemas' => []];
+    protected $components;
 
     public $extractCommonTypes = false;    
 
@@ -12,6 +12,39 @@ class Generator3_1_0 extends GeneratorBase {
         parent::__construct($namespace, $routes);
 
         $this->extractCommonTypes = $extractCommonTypes;
+
+        $this->components = [
+            'schemas' => [
+                'WPError' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'code' => [
+                            'description' => esc_html__( 'The error code', 'document-generator-for-openapi' ),
+                            'type' => 'string'
+                        ],
+                        'message' => [
+                            'description' => esc_html__( 'The description of the error', 'document-generator-for-openapi' ),
+                            'type' => 'string'
+                        ],
+                        'data' => [
+                            'description' => esc_html__( 'Data of the error', 'document-generator-for-openapi' ),
+                            'type' => 'any'
+                        ],
+                        'additional_data' => [
+                            'description' => esc_html__( 'Additional data of the error', 'document-generator-for-openapi' ),
+                            'type' => 'any'
+                        ],
+                        'additional_errors' => [
+                            'description' => esc_html__( 'More errors', 'document-generator-for-openapi' ),
+                            'type' => 'array',
+                            'items' => [
+                                '$ref' => '#/components/schemas/WPError'
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+        ];    
     }
 
     public function generateDocument() {
@@ -137,7 +170,16 @@ class Generator3_1_0 extends GeneratorBase {
                 $method = [
                     'responses' => [
                         '200' => ['description' => 'OK'],
-                        '400' => ['description' => 'Bad Request'],
+                        '400' => [
+                            'description' => 'Bad Request',
+                            'content' => [
+                                    'application/json' => [
+                                        'schema' => [
+                                            '$ref' => '#/components/schemas/WPError'    
+                                        ]
+                                    ]
+                                ]
+                            ],
                         '404' => ['description' => 'Not Found']
                     ]
                 ];
@@ -180,9 +222,7 @@ class Generator3_1_0 extends GeneratorBase {
 
                 //if a schema is defined for the reponse of the current route add it.
                 if ( isset( $spec['schema'] ) && !empty( $spec['schema'] )) {
-                    $method['responses']['200']['content'] = $this->generateResponseSchema( $spec['schema'], [
-                        'currentKey' => null   
-                    ]);
+                    $method['responses']['200']['content'] = $this->generateResponseSchema( $spec['schema'] );
                 }
 
                 //create operation object for path item with the specific method
@@ -208,7 +248,7 @@ class Generator3_1_0 extends GeneratorBase {
     }
 
     public function generateResponseSchema( $schema ) {
-                    
+                  
         $schemaName = $schema['title'];
 
         //add schema to the current schema pool to add it to the components part of the document later on.

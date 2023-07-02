@@ -1,0 +1,38 @@
+{
+    "name": "schneiderundschuetz/document-generator-for-openapi",
+    "type": "project",
+    "license": "",
+    "description": "OpenAPI (fka. Swagger) Document Generator for WordPress REST API",
+    "homepage": "https://www.sus.digital",
+    "authors": [],
+    "keywords": [],
+    "autoload": {
+        "classmap":["inc"]
+    },
+    "repositories": [
+        {
+            "type": "composer",
+            "url": "https://wpackagist.org",
+            "only": [
+                "wpackagist-plugin/*",
+                "wpackagist-theme/*"
+            ]
+        }
+    ],
+    "require-dev": {
+        "codeception/codeception": "^5",
+        "codeception/module-asserts": "^3",
+        "phpunit/phpunit": "^9",
+        "codeception/module-phpbrowser": "^3",
+        "johnpbloch/wordpress-core": "^6.2"
+    },
+    "scripts": {
+        "post-install-cmd": "codecept build",
+        "test": "codecept run"
+    },
+    "config": {
+        "allow-plugins": {
+            "johnpbloch/wordpress-core-installer": true
+        }
+    }
+}

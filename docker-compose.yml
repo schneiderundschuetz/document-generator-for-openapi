@@ -1,0 +1,23 @@
+version: '3'
+
+services:
+  wordpress:
+    build:
+      context: ./dev-ops/.
+    image: schneiderundschuetz/document-generator-for-openapi-dev
+    ports:
+      - '8080:80'
+    env_file: .env
+    volumes:
+      - ./:/var/www/html/wp-content/plugins/document-generator-for-openapi
+    depends_on:
+      database:
+        condition: service_healthy
+
+  database:
+    image: mariadb:latest
+    env_file: .env
+    healthcheck: 
+      test: mysqladmin ping -h 127.0.0.1 -u root --password=$$MARIADB_ROOT_PASSWORD
+      interval: 5s
+      retries: 10
