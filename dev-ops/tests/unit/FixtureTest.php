@@ -30,7 +30,7 @@ class FixtureTest extends \Codeception\Test\Unit
      */
     public function testCanParseWpV2Namespace(): void
     {
-        $generator = new \OpenAPIGenerator\Generator3_1_0( 'wp/v2', $this->input["routes"], true );
+        $generator = new \OpenAPIGenerator\Generator3_1_0( 'wp/v2', $this->input["routes"], false );
         $result = $generator->generateDocument();
 
         $this->assertEquals($this->expectedResult, $result);

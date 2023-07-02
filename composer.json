@@ -28,7 +28,7 @@
     },
     "scripts": {
         "post-install-cmd": "codecept build",
-        "test": "codecept run --verbose"
+        "test": "codecept run"
     },
     "config": {
         "allow-plugins": {
