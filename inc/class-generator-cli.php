@@ -1,6 +1,7 @@
 <?php 
 
 namespace OpenAPIGenerator;
+
 require_once __DIR__ . '/cli/class-document-generator-command.php';
 
 class GeneratorCLI {
