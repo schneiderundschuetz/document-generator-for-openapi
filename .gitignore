@@ -3,3 +3,5 @@ node_modules/
 svn/
 .env
 vendor
+dev-ops/tests/_support/_generated/
+dev-ops/tests/_output
