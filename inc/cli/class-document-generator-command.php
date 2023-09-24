@@ -13,28 +13,39 @@ class DocumentGenerator_Command
 	/**
 	 * Export the OpenAPI document of a given namespace as a JSON file.
 	 *
-	 * ## OPTIONS 
+	 * ## OPTIONS
 	 *
 	 * [<namespace>]
 	 * : The namespace for which the OpenAPI document should be generated.
-	 * 
-	 * [--destination]
-	 * : File name of the resulting OpenAPI JSON file.
+	 * ---
+	 * default: wp/v2
+	 * ---
+	 *
+	 * [--destination=<path>]
+	 * : File path for the resulting OpenAPI JSON file.
+	 * ---
+	 * default: openapi.json
+	 * ---
 	 *
 	 * [--extract-common-types]
-	 * : Defines if JSON schema objects should be extracted and, if equal, merged to one single named type (default=false).
-	 * 
+	 * : Defines if JSON schema objects should be extracted and, if equal, merged to one single named type.
+	 * ---
+	 * default: false
+	 * ---
+	 *
+	 *  ## EXAMPLES
+	 *
+	 *    # Export only the Site Health's specification
+	 *    $ wp openapi-generator export-file wp-site-health/v1
+	 *    Success: The JSON file (openapi.json) created successfully.
+	 *
 	 * @subcommand export-file
 	 */
 	public function export_file($args, $assoc_args)
 	{
-		$namespace = isset($args[0]) ? $args[0] : 'wp/v2';
-		$output = isset($assoc_args['destination']) ? $assoc_args['destination'] : 'openapi.json';
-		$extract_common_types      = (bool) Utils\get_flag_value( $assoc_args, 'extract-common-types', false );
-
-		if (empty($namespace)) {
-			\WP_CLI::error('The namespace needs to be defined', true);
-		}
+		list( $namespace )    = $args;
+		$output               = $assoc_args['destination'];
+		$extract_common_types = (bool) Utils\get_flag_value( $assoc_args, 'extract-common-types', false );
 
 		if (!in_array($namespace, rest_get_server()->get_namespaces())) {
 			\WP_CLI::error('The namespace is invalid', true);
